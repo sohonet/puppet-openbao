@@ -2,7 +2,7 @@
 
 require 'spec_helper_acceptance'
 
-describe 'vault class' do
+describe 'openbao class' do
   context 'default parameters' do
     it_behaves_like 'an idempotent resource' do
       let(:manifest) do
@@ -15,7 +15,7 @@ describe 'vault class' do
           include file_capability
         }
         package { 'unzip': ensure => present }
-        -> class { 'vault':
+        -> class { 'openbao':
           storage => {
             file => {
               path => '/tmp',
@@ -29,52 +29,51 @@ describe 'vault class' do
       end
     end
     # rubocop:disable RSpec/RepeatedExampleGroupBody
-    describe user('vault') do
+    describe user('openbao') do
       it { is_expected.to exist }
     end
 
-    describe group('vault') do
+    describe group('openbao') do
       it { is_expected.to exist }
     end
     # rubocop:enable RSpec/RepeatedExampleGroupBody
 
-    describe command('getcap /usr/local/bin/vault') do
+    describe command('getcap /usr/local/bin/bao') do
       its(:exit_status) { is_expected.to eq 0 }
-      its(:stdout) { is_expected.to match %r{/usr/local/bin/vault.*cap_ipc_lock.*ep} }
+      its(:stdout) { is_expected.to match %r{/usr/local/bin/bao.*cap_ipc_lock.*ep} }
     end
 
-    describe file('/usr/local/bin/vault') do
+    describe file('/usr/local/bin/bao') do
       it { is_expected.to exist }
       it { is_expected.to be_mode 755 }
       it { is_expected.to be_owned_by 'root' }
       it { is_expected.to be_grouped_into 'root' }
     end
 
-    describe file('/etc/systemd/system/vault.service') do
+    describe file('/etc/systemd/system/openbao.service') do
       it { is_expected.to be_file }
       it { is_expected.to be_mode 444 }
       it { is_expected.to be_owned_by 'root' }
       it { is_expected.to be_grouped_into 'root' }
-      its(:content) { is_expected.to include 'User=vault' }
-      its(:content) { is_expected.to include 'Group=vault' }
-      its(:content) { is_expected.to include 'ExecStart=/usr/local/bin/vault server -config=/etc/vault/config.json ' }
-      its(:content) { is_expected.to match %r{Environment=GOMAXPROCS=\d+} }
+      its(:content) { is_expected.to include 'User=openbao' }
+      its(:content) { is_expected.to include 'Group=openbao' }
+      its(:content) { is_expected.to include 'ExecStart=/usr/local/bin/bao server -config=/etc/openbao/openbao.hcl' }
     end
 
     describe command('systemctl list-units') do
-      its(:stdout) { is_expected.to include 'vault.service' }
+      its(:stdout) { is_expected.to include 'openbao.service' }
     end
 
-    describe file('/etc/vault') do
+    describe file('/etc/openbao') do
       it { is_expected.to be_directory }
     end
 
-    describe file('/etc/vault/config.json') do
+    describe file('/etc/openbao/openbao.hcl') do
       it { is_expected.to be_file }
       its(:content) { is_expected.to include('"address": "127.0.0.1:8200"') }
     end
 
-    describe service('vault') do
+    describe service('openbao') do
       it { is_expected.to be_enabled }
       it { is_expected.to be_running }
     end
@@ -83,9 +82,9 @@ describe 'vault class' do
       it { is_expected.to be_listening.on('127.0.0.1').with('tcp') }
     end
 
-    describe command('/usr/local/bin/vault version') do
+    describe command('/usr/local/bin/bao version') do
       its(:exit_status) { is_expected.to eq 0 }
-      its(:stdout) { is_expected.to match %r{Vault v1.19.2} }
+      its(:stdout) { is_expected.to match %r{OpenBao v2.2.1} }
     end
   end
 
@@ -100,7 +99,7 @@ describe 'vault class' do
         include file_capability
       }
       package { 'unzip': ensure => present }
-      -> class { 'vault':
+      -> class { 'openbao':
         storage => {
           file => {
             path => '/tmp',
@@ -119,9 +118,9 @@ describe 'vault class' do
     #  apply_manifest(manifest, expect_changes: true)
     # end
 
-    describe command('/usr/local/bin/vault version') do
+    describe command('/usr/local/bin/bao version') do
       its(:exit_status) { is_expected.to eq 0 }
-      its(:stdout) { is_expected.to match %r{Vault v1.19.2} }
+      its(:stdout) { is_expected.to match %r{OpenBao v2.2.1} }
     end
   end
 
@@ -136,7 +135,7 @@ describe 'vault class' do
         } else {
           include file_capability
         }
-        class { 'vault':
+        class { 'openbao':
           storage => {
             file => {
               path => '/tmp',
@@ -148,7 +147,7 @@ describe 'vault class' do
         PUPPET
       end
     end
-    describe service('vault') do
+    describe service('openbao') do
       it { is_expected.to be_enabled }
       it { is_expected.to be_running }
     end
@@ -158,19 +157,19 @@ describe 'vault class' do
     end
   end
 
-  context 'vault class with agent configuration' do
+  context 'openbao class with agent configuration' do
     let(:manifest) do
       <<-PUPPET
-      class { 'vault':
+      class { 'openbao':
         mode => 'agent',
-        agent_vault => { 'address' => 'https://vault.example.com:8200' },
+        agent_openbao => { 'address' => 'https://openbao.example.com:8200' },
         agent_auto_auth => {
           'method' => [{
             'type' => 'approle',
             'wrap_ttl' => '1m',
             'config' => {
-              'role_id_file_path' => '/etc/vault/role-id',
-              'secret_id_file_path' => '/etc/vault/secret-id'
+              'role_id_file_path' => '/etc/openbao/role-id',
+              'secret_id_file_path' => '/etc/openbao/secret-id'
             }
           }]
         },
@@ -186,14 +185,14 @@ describe 'vault class' do
       apply_manifest(manifest, catch_failures: true)
     end
 
-    it 'creates the config.json with correct settings' do
-      config_file = file('/etc/vault/config.json')
+    it 'creates the openbao.hcl with correct settings' do
+      config_file = file('/etc/openbao/openbao.hcl')
       expect(config_file).to be_file
       expect(config_file.content).to include(
-        '"address": "https://vault.example.com:8200"',
+        '"address": "https://openbao.example.com:8200"',
         '"wrap_ttl": "1m"',
-        '"role_id_file_path": "/etc/vault/role-id"',
-        '"secret_id_file_path": "/etc/vault/secret-id"',
+        '"role_id_file_path": "/etc/openbao/role-id"',
+        '"secret_id_file_path": "/etc/openbao/secret-id"',
         '"use_auto_auth_token": true',
         '"address": "127.0.0.1:8100"'
       )

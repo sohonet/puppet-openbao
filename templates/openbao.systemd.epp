@@ -1,0 +1,37 @@
+[Unit]
+Description="OpenBao - A tool for managing secrets"
+Documentation=https://github.com/openbao/openbao/tree/main/website/content/docs
+Requires=network-online.target
+After=network-online.target
+ConditionFileNotEmpty=<%= $openbao::config_dir %>/openbao.hcl
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+Type=notify
+EnvironmentFile=<%= $openbao::config_dir %>/openbao.env
+User=<%= $openbao::user %>
+Group=<%= $openbao::group %>
+ProtectSystem=full
+ProtectHome=read-only
+PrivateTmp=yes
+PrivateDevices=yes
+<%- if $openbao::disable_mlock { -%>
+CapabilityBoundingSet=CAP_SYSLOG
+<%- } else { -%>
+SecureBits=keep-caps
+Capabilities=CAP_IPC_LOCK+ep
+CapabilityBoundingSet=CAP_SYSLOG CAP_IPC_LOCK
+<%- } -%>
+NoNewPrivileges=yes
+ExecStart=<%= $openbao::bin_dir %>/bao <%= $openbao::mode %> -config=<%= $openbao::config_dir %>/openbao.hcl <%= $openbao::service_options %>
+ExecReload=/bin/kill --signal HUP $MAINPID
+KillMode=process
+KillSignal=SIGINT
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+MemorySwapMax=0
+
+[Install]
+WantedBy=multi-user.target

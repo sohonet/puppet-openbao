@@ -107,7 +107,7 @@
 - Add Amazon OS support
 
 ## 2016-07-19 v0.3.0
-- Ensure config.json has correct user/group
+- Ensure openbao.hcl has correct user/group
 
 ## 2016-06-01 v0.2.3
 - Configure log file for upstart

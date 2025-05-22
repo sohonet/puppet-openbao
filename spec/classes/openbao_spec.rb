@@ -2,17 +2,17 @@
 
 require 'spec_helper'
 
-describe 'vault' do
+describe 'openbao' do
   on_supported_os.each do |os, os_facts|
     context "on #{os}" do
       let(:facts) { override_facts(os_facts, processors: { count: 3 }) }
 
-      context 'vault class with simple configuration' do
+      context 'openbao class with simple configuration' do
         let(:params) do
           {
             storage: {
               'file' => {
-                'path' => '/data/vault'
+                'path' => '/data/openbao'
               }
             },
             listener: {
@@ -25,22 +25,22 @@ describe 'vault' do
         end
 
         it { is_expected.to compile.with_all_deps }
-        it { is_expected.to contain_class('vault') }
+        it { is_expected.to contain_class('openbao') }
 
-        it { is_expected.to contain_class('vault::params') }
-        it { is_expected.to contain_class('vault::install').that_comes_before('Class[vault::config]') }
-        it { is_expected.to contain_class('vault::config') }
-        it { is_expected.to contain_class('vault::service').that_subscribes_to('Class[vault::config]') }
+        it { is_expected.to contain_class('openbao::params') }
+        it { is_expected.to contain_class('openbao::install').that_comes_before('Class[openbao::config]') }
+        it { is_expected.to contain_class('openbao::config') }
+        it { is_expected.to contain_class('openbao::service').that_subscribes_to('Class[openbao::config]') }
 
         it {
-          is_expected.to contain_service('vault').
+          is_expected.to contain_service('openbao').
             with_ensure('running').
             with_enable(true)
         }
 
-        it { is_expected.to contain_user('vault') }
-        it { is_expected.to contain_group('vault') }
-        it { is_expected.not_to contain_file('/data/vault') }
+        it { is_expected.to contain_user('openbao') }
+        it { is_expected.to contain_group('openbao') }
+        it { is_expected.not_to contain_file('/data/openbao') }
 
         context 'when not managing user and group' do
           let(:params) do
@@ -50,24 +50,24 @@ describe 'vault' do
             }
           end
 
-          it { is_expected.not_to contain_user('vault') }
-          it { is_expected.not_to contain_group('vault') }
+          it { is_expected.not_to contain_user('openbao') }
+          it { is_expected.not_to contain_group('openbao') }
         end
 
         it {
-          is_expected.to contain_file('/etc/vault/config.json').
-            with_owner('vault').
-            with_group('vault')
+          is_expected.to contain_file('/etc/openbao/openbao.hcl').
+            with_owner('openbao').
+            with_group('openbao')
         }
 
-        context 'vault JSON config' do
-          subject { param_value(catalogue, 'File', '/etc/vault/config.json', 'content') }
+        context 'openbao HCL config' do
+          subject { param_value(catalogue, 'File', '/etc/openbao/openbao.hcl', 'content') }
 
           it {
             is_expected.to include_json(
               storage: {
                 file: {
-                  path: '/data/vault'
+                  path: '/data/openbao'
                 }
               }
             )
@@ -99,7 +99,7 @@ describe 'vault' do
           end
         end
 
-        it { is_expected.to contain_file('vault_binary').with_mode('0755') }
+        it { is_expected.to contain_file('openbao_binary').with_mode('0755') }
 
         context 'when disable mlock' do
           let(:params) do
@@ -108,10 +108,10 @@ describe 'vault' do
             }
           end
 
-          it { is_expected.not_to contain_file_capability('vault_binary_capability') }
+          it { is_expected.not_to contain_file_capability('openbao_binary_capability') }
 
           it {
-            expect(param_value(catalogue, 'File', '/etc/vault/config.json', 'content')).to include_json(
+            expect(param_value(catalogue, 'File', '/etc/openbao/openbao.hcl', 'content')).to include_json(
               disable_mlock: true
             )
           }
@@ -125,37 +125,38 @@ describe 'vault' do
           end
 
           it {
-            expect(param_value(catalogue, 'File', '/etc/vault/config.json', 'content')).to include_json(
+            expect(param_value(catalogue, 'File', '/etc/openbao/openbao.hcl', 'content')).to include_json(
               api_addr: 'something'
             )
           }
         end
 
+
         context 'when installed from archive' do
           let(:params) { { install_method: 'archive' } }
 
           it {
-            is_expected.to contain_archive('/tmp/vault.zip').
-              that_comes_before('File[vault_binary]')
+            is_expected.to contain_archive('/tmp/openbao.tar.gz').
+              that_comes_before('File[openbao_binary]')
           }
 
           it {
-            is_expected.to contain_file('/etc/vault').
+            is_expected.to contain_file('/etc/openbao').
               with_ensure('directory').
               with_purge('true').
               with_recurse('true').
-              with_owner('vault').
-              with_group('vault')
+              with_owner('openbao').
+              with_group('openbao')
           }
 
           context 'when installed with default download options' do
             let(:params) do
-              super().merge(version: '0.7.0')
+              super().merge(version: 'v2.2.1')
             end
 
             it {
-              is_expected.to contain_archive('/tmp/vault.zip').
-                with_source('https://releases.hashicorp.com/vault/0.7.0/vault_0.7.0_linux_amd64.zip')
+              is_expected.to contain_archive('/tmp/openbao.tar.gz').
+                with_source('https://github.com/openbao/openbao/releases/download/v2.2.1/bao_2.2.1_Linux_x86_64.tar.gz')
             }
           end
 
@@ -163,40 +164,40 @@ describe 'vault' do
             let(:params) do
               super().merge(
                 version: '0.6.0',
-                download_url_base: 'http://my_site.example.com/vault/',
-                package_name: 'vaultbinary',
+                download_url_base: 'http://my_site.example.com/openbao',
+                package_name: 'openbaobinary',
                 download_extension: 'tar.gz'
               )
             end
 
             it {
-              is_expected.to contain_archive('/tmp/vault.zip').
-                with_source('http://my_site.example.com/vault/0.6.0/vaultbinary_0.6.0_linux_amd64.tar.gz')
+              is_expected.to contain_archive('/tmp/openbao.tar.gz').
+                with_source('http://my_site.example.com/openbao/0.6.0/openbaobinary_0.6.0_Linux_x86_64.tar.gz')
             }
           end
 
           context 'when installed from download url' do
             let(:params) do
-              super().merge(download_url: 'http://example.com/vault.zip')
+              super().merge(download_url: 'http://example.com/openbao.tar.gz')
             end
 
             it {
-              is_expected.to contain_archive('/tmp/vault.zip').
-                with_source('http://example.com/vault.zip')
+              is_expected.to contain_archive('/tmp/openbao.tar.gz').
+                with_source('http://example.com/openbao.tar.gz')
             }
           end
 
           it {
-            is_expected.to contain_file_capability('vault_binary_capability').
+            is_expected.to contain_file_capability('openbao_binary_capability').
               with_ensure('present').
               with_capability('cap_ipc_lock=ep').
-              that_subscribes_to('File[vault_binary]')
+              that_subscribes_to('File[openbao_binary]')
           }
 
           context 'when not managing file capabilities' do
             let(:params) { { manage_file_capabilities: false } }
 
-            it { is_expected.not_to contain_file_capability('vault_binary_capability') }
+            it { is_expected.not_to contain_file_capability('openbao_binary_capability') }
           end
         end
 
@@ -242,8 +243,8 @@ describe 'vault' do
           if os_facts[:os]['family'] == 'Archlinux'
             it { is_expected.not_to compile }
           else
-            it { is_expected.not_to contain_file('/etc/vault') }
-            it { is_expected.to contain_file('/etc/vault.d/config.json') }
+            it { is_expected.not_to contain_file('/etc/openbao') }
+            it { is_expected.to contain_file('/etc/openbao.d/openbao.hcl') }
           end
 
           case os_facts[:os]['family']
@@ -258,13 +259,13 @@ describe 'vault' do
           let(:params) do
             {
               install_method: 'repo',
-              package_name: 'vault',
+              package_name: 'bao',
               package_ensure: 'installed'
             }
           end
 
-          it { is_expected.to contain_package('vault') }
-          it { is_expected.not_to contain_file_capability('vault_binary_capability') }
+          it { is_expected.to contain_package('bao') }
+          it { is_expected.not_to contain_file_capability('openbao_binary_capability') }
 
           context 'when managing file capabilities' do
             let(:params) do
@@ -273,8 +274,8 @@ describe 'vault' do
               )
             end
 
-            it { is_expected.to contain_file_capability('vault_binary_capability') }
-            it { is_expected.to contain_package('vault').that_notifies(['File_capability[vault_binary_capability]']) }
+            it { is_expected.to contain_file_capability('openbao_binary_capability') }
+            it { is_expected.to contain_package('bao').that_notifies(['File_capability[openbao_binary_capability]']) }
           end
         end
       end
@@ -287,7 +288,7 @@ describe 'vault' do
         end
 
         it {
-          expect(param_value(catalogue, 'File', '/etc/vault/config.json', 'content')).to include_json(
+          expect(param_value(catalogue, 'File', '/etc/openbao/openbao.hcl', 'content')).to include_json(
             ui: true
           )
         }
@@ -300,7 +301,7 @@ describe 'vault' do
           }
         end
 
-        it { is_expected.to contain_file('/etc/vault/config.json').with_mode('0700') }
+        it { is_expected.to contain_file('/etc/openbao/openbao.hcl').with_mode('0700') }
       end
 
       context 'when specifying an array of listeners' do
@@ -314,7 +315,7 @@ describe 'vault' do
         end
 
         it {
-          expect(param_value(catalogue, 'File', '/etc/vault/config.json', 'content')).to include_json(
+          expect(param_value(catalogue, 'File', '/etc/openbao/openbao.hcl', 'content')).to include_json(
             listener: [
               {
                 tcp: {
@@ -337,14 +338,14 @@ describe 'vault' do
             manage_service: false,
             storage: {
               'file' => {
-                'path' => '/data/vault'
+                'path' => '/data/openbao'
               }
             }
           }
         end
 
         it {
-          is_expected.not_to contain_service('vault').
+          is_expected.not_to contain_service('openbao').
             with_ensure('running').
             with_enable(true)
         }
@@ -356,17 +357,17 @@ describe 'vault' do
             manage_storage_dir: true,
             storage: {
               'file' => {
-                'path' => '/data/vault'
+                'path' => '/data/openbao'
               }
             }
           }
         end
 
         it {
-          is_expected.to contain_file('/data/vault').
+          is_expected.to contain_file('/data/openbao').
             with_ensure('directory').
-            with_owner('vault').
-            with_group('vault')
+            with_owner('openbao').
+            with_group('openbao')
         }
       end
 
@@ -376,17 +377,17 @@ describe 'vault' do
             manage_storage_dir: true,
             storage: {
               'raft' => {
-                'path' => '/data/vault'
+                'path' => '/data/openbao'
               }
             }
           }
         end
 
         it {
-          is_expected.to contain_file('/data/vault').
+          is_expected.to contain_file('/data/openbao').
             with_ensure('directory').
-            with_owner('vault').
-            with_group('vault')
+            with_owner('openbao').
+            with_group('openbao')
         }
       end
 
@@ -398,7 +399,7 @@ describe 'vault' do
         end
 
         it {
-          is_expected.not_to contain_file('/etc/vault/config.json')
+          is_expected.not_to contain_file('/etc/openbao/openbao.hcl')
         }
       end
 
@@ -411,24 +412,24 @@ describe 'vault' do
         end
 
         it {
-          is_expected.to contain_service('vault').
+          is_expected.to contain_service('openbao').
             with_ensure('stopped').
             with_enable(false)
         }
       end
 
-      context 'vault class with agent configuration' do
+      context 'openbao class with agent configuration' do
         let(:params) do
           {
             mode: 'agent',
-            agent_vault: { 'address' => 'https://vault.example.com:8200' },
+            agent_openbao: { 'address' => 'https://openbao.example.com:8200' },
             agent_auto_auth: {
               'method' => [{
                 'type' => 'approle',
                 'wrap_ttl' => '1m',
                 'config' => {
-                  'role_id_file_path' => '/etc/vault/role-id',
-                  'secret_id_file_path' => '/etc/vault/secret-id'
+                  'role_id_file_path' => '/etc/openbao/role-id',
+                  'secret_id_file_path' => '/etc/openbao/secret-id'
                 }
               }]
             },
@@ -444,16 +445,16 @@ describe 'vault' do
 
         it { is_expected.to compile.with_all_deps }
 
-        it 'generates the config.json with correct agent settings' do
-          expect(param_value(catalogue, 'File', '/etc/vault/config.json', 'content')).to include_json(
-            vault: { 'address' => 'https://vault.example.com:8200' },
+        it 'generates the openbao.hcl with correct agent settings' do
+          expect(param_value(catalogue, 'File', '/etc/openbao/openbao.hcl', 'content')).to include_json(
+            openbao: { 'address' => 'https://openbao.example.com:8200' },
             auto_auth: {
               'method' => [{
                 'type' => 'approle',
                 'wrap_ttl' => '1m',
                 'config' => {
-                  'role_id_file_path' => '/etc/vault/role-id',
-                  'secret_id_file_path' => '/etc/vault/secret-id'
+                  'role_id_file_path' => '/etc/openbao/role-id',
+                  'secret_id_file_path' => '/etc/openbao/secret-id'
                 }
               }]
             },
@@ -470,16 +471,14 @@ describe 'vault' do
           context 'RedHat >=7 specific' do
             context 'includes systemd init script' do
               it {
-                is_expected.to contain_file('/etc/systemd/system/vault.service').
+                is_expected.to contain_file('/etc/systemd/system/openbao.service').
                   with_mode('0444').
                   with_ensure('file').
                   with_owner('root').
                   with_group('root').
-                  with_content(%r{^# vault systemd unit file}).
-                  with_content(%r{^User=vault$}).
-                  with_content(%r{^Group=vault$}).
-                  with_content(%r{Environment=GOMAXPROCS=3}).
-                  with_content(%r{^ExecStart=/usr/local/bin/vault server -config=/etc/vault/config.json $}).
+                  with_content(%r{^User=openbao$}).
+                  with_content(%r{^Group=openbao$}).
+                  with_content(%r{^ExecStart=/usr/local/bin/bao server -config=/etc/openbao/openbao.hcl $}).
                   with_content(%r{SecureBits=keep-caps}).
                   with_content(%r{Capabilities=CAP_IPC_LOCK\+ep}).
                   with_content(%r{CapabilityBoundingSet=CAP_SYSLOG CAP_IPC_LOCK}).
@@ -491,7 +490,7 @@ describe 'vault' do
               let(:params) do
                 {
                   bin_dir: '/opt/bin',
-                  config_dir: '/opt/etc/vault',
+                  config_dir: '/opt/etc/openbao',
                   service_options: '-log-level=info',
                   user: 'root',
                   group: 'admin',
@@ -500,16 +499,14 @@ describe 'vault' do
               end
 
               it {
-                is_expected.to contain_file('/etc/systemd/system/vault.service').
+                is_expected.to contain_file('/etc/systemd/system/openbao.service').
                   with_mode('0444').
                   with_ensure('file').
                   with_owner('root').
                   with_group('root').
-                  with_content(%r{^# vault systemd unit file}).
                   with_content(%r{^User=root$}).
                   with_content(%r{^Group=admin$}).
-                  with_content(%r{Environment=GOMAXPROCS=8}).
-                  with_content(%r{^ExecStart=/opt/bin/vault server -config=/opt/etc/vault/config.json -log-level=info$})
+                  with_content(%r{^ExecStart=/opt/bin/bao server -config=/opt/etc/openbao/openbao.hcl -log-level=info$})
               }
             end
 
@@ -519,16 +516,14 @@ describe 'vault' do
               end
 
               it {
-                is_expected.to contain_file('/etc/systemd/system/vault.service').
+                is_expected.to contain_file('/etc/systemd/system/openbao.service').
                   with_mode('0444').
                   with_ensure('file').
                   with_owner('root').
                   with_group('root').
-                  with_content(%r{^# vault systemd unit file}).
-                  with_content(%r{^User=vault$}).
-                  with_content(%r{^Group=vault$}).
-                  with_content(%r{Environment=GOMAXPROCS=3}).
-                  with_content(%r{^ExecStart=/usr/local/bin/vault agent -config=/etc/vault/config.json $}).
+                  with_content(%r{^User=openbao$}).
+                  with_content(%r{^Group=openbao$}).
+                  with_content(%r{^ExecStart=/usr/local/bin/bao agent -config=/etc/openbao/openbao.hcl $}).
                   with_content(%r{SecureBits=keep-caps}).
                   with_content(%r{Capabilities=CAP_IPC_LOCK\+ep}).
                   with_content(%r{CapabilityBoundingSet=CAP_SYSLOG CAP_IPC_LOCK}).
@@ -542,15 +537,14 @@ describe 'vault' do
               end
 
               it {
-                is_expected.to contain_file('/etc/systemd/system/vault.service').
+                is_expected.to contain_file('/etc/systemd/system/openbao.service').
                   with_mode('0444').
                   with_ensure('file').
                   with_owner('root').
                   with_group('root').
-                  with_content(%r{^# vault systemd unit file}).
-                  with_content(%r{^User=vault$}).
-                  with_content(%r{^Group=vault$}).
-                  with_content(%r{^ExecStart=/usr/local/bin/vault server -config=/etc/vault/config.json $}).
+                  with_content(%r{^User=openbao$}).
+                  with_content(%r{^Group=openbao$}).
+                  with_content(%r{^ExecStart=/usr/local/bin/bao server -config=/etc/openbao/openbao.hcl $}).
                   without_content(%r{SecureBits=keep-caps}).
                   without_content(%r{Capabilities=CAP_IPC_LOCK\+ep}).
                   with_content(%r{CapabilityBoundingSet=CAP_SYSLOG}).
@@ -570,7 +564,7 @@ describe 'vault' do
                 }
               end
 
-              it { is_expected.not_to contain_file('/etc/systemd/system/vault.service') }
+              it { is_expected.not_to contain_file('/etc/systemd/system/openbao.service') }
             end
 
             context 'install through repo without service management' do
@@ -581,7 +575,7 @@ describe 'vault' do
                 }
               end
 
-              it { is_expected.not_to contain_file('/etc/systemd/system/vault.service') }
+              it { is_expected.not_to contain_file('/etc/systemd/system/openbao.service') }
             end
 
             context 'install through repo with service management' do
@@ -592,7 +586,7 @@ describe 'vault' do
                 }
               end
 
-              it { is_expected.to contain_file('/etc/systemd/system/vault.service') }
+              it { is_expected.to contain_file('/etc/systemd/system/openbao.service') }
             end
 
             context 'install through archive with default service management' do
@@ -603,7 +597,7 @@ describe 'vault' do
                 }
               end
 
-              it { is_expected.to contain_file('/etc/systemd/system/vault.service') }
+              it { is_expected.to contain_file('/etc/systemd/system/openbao.service') }
             end
 
             context 'install through archive without service management' do
@@ -614,7 +608,7 @@ describe 'vault' do
                 }
               end
 
-              it { is_expected.not_to contain_file('/etc/systemd/system/vault.service') }
+              it { is_expected.not_to contain_file('/etc/systemd/system/openbao.service') }
             end
 
             context 'install through archive with service management' do
@@ -625,7 +619,7 @@ describe 'vault' do
                 }
               end
 
-              it { is_expected.to contain_file('/etc/systemd/system/vault.service') }
+              it { is_expected.to contain_file('/etc/systemd/system/openbao.service') }
             end
           end
         end
@@ -639,7 +633,7 @@ describe 'vault' do
               }
             end
 
-            it { is_expected.not_to contain_file('/etc/init.d/vault') }
+            it { is_expected.not_to contain_file('/etc/init.d/openbao') }
           end
 
           context 'install through repo without service management' do
@@ -650,7 +644,7 @@ describe 'vault' do
               }
             end
 
-            it { is_expected.not_to contain_file('/etc/init.d/vault') }
+            it { is_expected.not_to contain_file('/etc/init.d/openbao') }
           end
 
           context 'install through archive without service management' do
@@ -661,22 +655,20 @@ describe 'vault' do
               }
             end
 
-            it { is_expected.not_to contain_file('/etc/init.d/vault') }
+            it { is_expected.not_to contain_file('/etc/init.d/openbao') }
           end
 
           context 'on Debian based with systemd' do
             context 'includes systemd init script' do
               it {
-                is_expected.to contain_file('/etc/systemd/system/vault.service').
+                is_expected.to contain_file('/etc/systemd/system/openbao.service').
                   with_mode('0444').
                   with_ensure('file').
                   with_owner('root').
                   with_group('root').
-                  with_content(%r{^# vault systemd unit file}).
-                  with_content(%r{^User=vault$}).
-                  with_content(%r{^Group=vault$}).
-                  with_content(%r{Environment=GOMAXPROCS=3}).
-                  with_content(%r{^ExecStart=/usr/local/bin/vault server -config=/etc/vault/config.json $}).
+                  with_content(%r{^User=openbao$}).
+                  with_content(%r{^Group=openbao$}).
+                  with_content(%r{^ExecStart=/usr/local/bin/bao server -config=/etc/openbao/openbao.hcl $}).
                   with_content(%r{SecureBits=keep-caps}).
                   with_content(%r{Capabilities=CAP_IPC_LOCK\+ep}).
                   with_content(%r{CapabilityBoundingSet=CAP_SYSLOG CAP_IPC_LOCK}).
@@ -688,7 +680,7 @@ describe 'vault' do
               let(:params) do
                 {
                   bin_dir: '/opt/bin',
-                  config_dir: '/opt/etc/vault',
+                  config_dir: '/opt/etc/openbao',
                   service_options: '-log-level=info',
                   user: 'root',
                   group: 'admin',
@@ -697,16 +689,14 @@ describe 'vault' do
               end
 
               it {
-                is_expected.to contain_file('/etc/systemd/system/vault.service').
+                is_expected.to contain_file('/etc/systemd/system/openbao.service').
                   with_mode('0444').
                   with_ensure('file').
                   with_owner('root').
                   with_group('root').
-                  with_content(%r{^# vault systemd unit file}).
                   with_content(%r{^User=root$}).
                   with_content(%r{^Group=admin$}).
-                  with_content(%r{Environment=GOMAXPROCS=8}).
-                  with_content(%r{^ExecStart=/opt/bin/vault server -config=/opt/etc/vault/config.json -log-level=info$})
+                  with_content(%r{^ExecStart=/opt/bin/bao server -config=/opt/etc/openbao/openbao.hcl -log-level=info$})
               }
             end
 
@@ -716,16 +706,14 @@ describe 'vault' do
               end
 
               it {
-                is_expected.to contain_file('/etc/systemd/system/vault.service').
+                is_expected.to contain_file('/etc/systemd/system/openbao.service').
                   with_mode('0444').
                   with_ensure('file').
                   with_owner('root').
                   with_group('root').
-                  with_content(%r{^# vault systemd unit file}).
-                  with_content(%r{^User=vault$}).
-                  with_content(%r{^Group=vault$}).
-                  with_content(%r{Environment=GOMAXPROCS=3}).
-                  with_content(%r{^ExecStart=/usr/local/bin/vault agent -config=/etc/vault/config.json $}).
+                  with_content(%r{^User=openbao$}).
+                  with_content(%r{^Group=openbao$}).
+                  with_content(%r{^ExecStart=/usr/local/bin/bao agent -config=/etc/openbao/openbao.hcl $}).
                   with_content(%r{SecureBits=keep-caps}).
                   with_content(%r{Capabilities=CAP_IPC_LOCK\+ep}).
                   with_content(%r{CapabilityBoundingSet=CAP_SYSLOG CAP_IPC_LOCK}).
@@ -739,15 +727,14 @@ describe 'vault' do
               end
 
               it {
-                is_expected.to contain_file('/etc/systemd/system/vault.service').
+                is_expected.to contain_file('/etc/systemd/system/openbao.service').
                   with_mode('0444').
                   with_ensure('file').
                   with_owner('root').
                   with_group('root').
-                  with_content(%r{^# vault systemd unit file}).
-                  with_content(%r{^User=vault$}).
-                  with_content(%r{^Group=vault$}).
-                  with_content(%r{^ExecStart=/usr/local/bin/vault server -config=/etc/vault/config.json $}).
+                  with_content(%r{^User=openbao$}).
+                  with_content(%r{^Group=openbao$}).
+                  with_content(%r{^ExecStart=/usr/local/bin/bao server -config=/etc/openbao/openbao.hcl $}).
                   without_content(%r{SecureBits=keep-caps}).
                   without_content(%r{Capabilities=CAP_IPC_LOCK\+ep}).
                   with_content(%r{CapabilityBoundingSet=CAP_SYSLOG}).
@@ -755,7 +742,7 @@ describe 'vault' do
               }
             end
 
-            it { is_expected.to contain_systemd__unit_file('vault.service') }
+            it { is_expected.to contain_systemd__unit_file('openbao.service') }
 
             context 'install through repo with default service management' do
               let(:params) do
@@ -765,7 +752,7 @@ describe 'vault' do
                 }
               end
 
-              it { is_expected.not_to contain_file('/etc/systemd/system/vault.service') }
+              it { is_expected.not_to contain_file('/etc/systemd/system/openbao.service') }
             end
 
             context 'install through repo without service management' do
@@ -776,7 +763,7 @@ describe 'vault' do
                 }
               end
 
-              it { is_expected.not_to contain_file('/etc/systemd/system/vault.service') }
+              it { is_expected.not_to contain_file('/etc/systemd/system/openbao.service') }
             end
 
             context 'install through repo with service management' do
@@ -787,7 +774,7 @@ describe 'vault' do
                 }
               end
 
-              it { is_expected.to contain_file('/etc/systemd/system/vault.service') }
+              it { is_expected.to contain_file('/etc/systemd/system/openbao.service') }
             end
 
             context 'install through archive with default service management' do
@@ -798,7 +785,7 @@ describe 'vault' do
                 }
               end
 
-              it { is_expected.to contain_file('/etc/systemd/system/vault.service') }
+              it { is_expected.to contain_file('/etc/systemd/system/openbao.service') }
             end
 
             context 'install through archive without service management' do
@@ -809,7 +796,7 @@ describe 'vault' do
                 }
               end
 
-              it { is_expected.not_to contain_file('/etc/systemd/system/vault.service') }
+              it { is_expected.not_to contain_file('/etc/systemd/system/openbao.service') }
             end
 
             context 'install through archive with service management' do
@@ -820,14 +807,14 @@ describe 'vault' do
                 }
               end
 
-              it { is_expected.to contain_file('/etc/systemd/system/vault.service') }
+              it { is_expected.to contain_file('/etc/systemd/system/openbao.service') }
             end
           end
         end
       when 'Archlinux'
         context 'defaults to repo install' do
-          it { is_expected.to contain_file('vault_binary').with_path('/bin/vault') }
-          it { is_expected.not_to contain_file_capability('vault_binary_capability') }
+          it { is_expected.to contain_file('openbao_binary').with_path('/bin/bao') }
+          it { is_expected.not_to contain_file_capability('openbao_binary_capability') }
         end
       end
     end

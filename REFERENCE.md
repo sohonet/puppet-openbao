@@ -136,7 +136,7 @@ Default value: `if $install_method == 'repo' and $manage_repo { '/etc/vault.d' }
 
 Data type: `Any`
 
-Mode of the configuration file (config.json). Defaults to '0750'
+Mode of the configuration file (openbao.hcl). Defaults to '0750'
 
 Default value: `'0750'`
 
@@ -540,4 +540,3 @@ Data type: `Optional[Hash]`
 Hash containing telemetry configuration for agent mode
 
 Default value: `undef`
-
