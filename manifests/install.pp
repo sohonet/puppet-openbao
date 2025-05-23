@@ -5,14 +5,14 @@ class openbao::install {
   assert_private()
   $openbao_bin = "${openbao::bin_dir}/bao"
 
+  if $openbao::manage_download_dir {
+    file { $openbao::download_dir:
+      ensure => directory,
+    }
+  }
+
   case $openbao::install_method {
     'archive': {
-      if $openbao::manage_download_dir {
-        file { $openbao::download_dir:
-          ensure => directory,
-        }
-      }
-
       archive { "${openbao::download_dir}/${openbao::download_filename}":
         ensure       => present,
         extract      => true,
@@ -33,12 +33,15 @@ class openbao::install {
     }
 
     'repo': {
-      if $openbao::manage_repo {
-        include hashi_stack::repo
-        Class['hashi_stack::repo'] -> Package[$openbao::package_name]
+      file { 'openbao_package':
+        ensure => file,
+        path   => "${openbao::download_dir}/openbao.deb",
+        source => $openbao::real_download_url,
       }
+
       package { $openbao::package_name:
         ensure => $openbao::package_ensure,
+        source => "${openbao::download_dir}/openbao.deb",
       }
       $_manage_file_capabilities = false
     }

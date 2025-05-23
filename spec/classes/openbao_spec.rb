@@ -27,7 +27,6 @@ describe 'openbao' do
         it { is_expected.to compile.with_all_deps }
         it { is_expected.to contain_class('openbao') }
 
-        it { is_expected.to contain_class('openbao::params') }
         it { is_expected.to contain_class('openbao::install').that_comes_before('Class[openbao::config]') }
         it { is_expected.to contain_class('openbao::config') }
         it { is_expected.to contain_class('openbao::service').that_subscribes_to('Class[openbao::config]') }
@@ -99,8 +98,6 @@ describe 'openbao' do
           end
         end
 
-        it { is_expected.to contain_file('openbao_binary').with_mode('0755') }
-
         context 'when disable mlock' do
           let(:params) do
             {
@@ -134,6 +131,7 @@ describe 'openbao' do
 
         context 'when installed from archive' do
           let(:params) { { install_method: 'archive' } }
+          it { is_expected.to contain_file('openbao_binary').with_mode('0755') }
 
           it {
             is_expected.to contain_archive('/tmp/openbao.tar.gz').
@@ -198,60 +196,6 @@ describe 'openbao' do
             let(:params) { { manage_file_capabilities: false } }
 
             it { is_expected.not_to contain_file_capability('openbao_binary_capability') }
-          end
-        end
-
-        context 'When asked not to manage the repo' do
-          let(:params) do
-            {
-              manage_repo: false
-            }
-          end
-
-          case os_facts[:os]['family']
-          when 'Debian'
-            it { is_expected.not_to contain_apt__source('HashiCorp') }
-          when 'RedHat'
-            it { is_expected.not_to contain_yumrepo('HashiCorp') }
-          end
-        end
-
-        context 'When asked to manage the repo but not to install using repo' do
-          let(:params) do
-            {
-              install_method: 'archive',
-              manage_repo: true
-            }
-          end
-
-          case os_facts[:os]['family']
-          when 'Debian'
-            it { is_expected.not_to contain_apt__source('HashiCorp') }
-          when 'RedHat'
-            it { is_expected.not_to contain_yumrepo('HashiCorp') }
-          end
-        end
-
-        context 'When asked to manage the repo and to install as repo' do
-          let(:params) do
-            {
-              install_method: 'repo',
-              manage_repo: true
-            }
-          end
-
-          if os_facts[:os]['family'] == 'Archlinux'
-            it { is_expected.not_to compile }
-          else
-            it { is_expected.not_to contain_file('/etc/openbao') }
-            it { is_expected.to contain_file('/etc/openbao.d/openbao.hcl') }
-          end
-
-          case os_facts[:os]['family']
-          when 'Debian'
-            it { is_expected.to contain_apt__source('HashiCorp') }
-          when 'RedHat'
-            it { is_expected.to contain_yumrepo('HashiCorp') }
           end
         end
 
@@ -478,7 +422,7 @@ describe 'openbao' do
                   with_group('root').
                   with_content(%r{^User=openbao$}).
                   with_content(%r{^Group=openbao$}).
-                  with_content(%r{^ExecStart=/usr/local/bin/bao server -config=/etc/openbao/openbao.hcl $}).
+                  with_content(%r{^ExecStart=/usr/bin/bao server -config=/etc/openbao/openbao.hcl $}).
                   with_content(%r{SecureBits=keep-caps}).
                   with_content(%r{Capabilities=CAP_IPC_LOCK\+ep}).
                   with_content(%r{CapabilityBoundingSet=CAP_SYSLOG CAP_IPC_LOCK}).
@@ -523,7 +467,7 @@ describe 'openbao' do
                   with_group('root').
                   with_content(%r{^User=openbao$}).
                   with_content(%r{^Group=openbao$}).
-                  with_content(%r{^ExecStart=/usr/local/bin/bao agent -config=/etc/openbao/openbao.hcl $}).
+                  with_content(%r{^ExecStart=/usr/bin/bao agent -config=/etc/openbao/openbao.hcl $}).
                   with_content(%r{SecureBits=keep-caps}).
                   with_content(%r{Capabilities=CAP_IPC_LOCK\+ep}).
                   with_content(%r{CapabilityBoundingSet=CAP_SYSLOG CAP_IPC_LOCK}).
@@ -544,7 +488,7 @@ describe 'openbao' do
                   with_group('root').
                   with_content(%r{^User=openbao$}).
                   with_content(%r{^Group=openbao$}).
-                  with_content(%r{^ExecStart=/usr/local/bin/bao server -config=/etc/openbao/openbao.hcl $}).
+                  with_content(%r{^ExecStart=/usr/bin/bao server -config=/etc/openbao/openbao.hcl $}).
                   without_content(%r{SecureBits=keep-caps}).
                   without_content(%r{Capabilities=CAP_IPC_LOCK\+ep}).
                   with_content(%r{CapabilityBoundingSet=CAP_SYSLOG}).
@@ -563,8 +507,6 @@ describe 'openbao' do
                   manage_service_file: :undef
                 }
               end
-
-              it { is_expected.not_to contain_file('/etc/systemd/system/openbao.service') }
             end
 
             context 'install through repo without service management' do
@@ -625,6 +567,91 @@ describe 'openbao' do
         end
       when 'Debian'
         context 'on Debian OS family' do
+          context 'includes systemd init script' do
+            it {
+              is_expected.to contain_file('/etc/systemd/system/openbao.service').
+                with_mode('0444').
+                with_ensure('file').
+                with_owner('root').
+                with_group('root').
+                with_content(%r{^User=openbao$}).
+                with_content(%r{^Group=openbao$}).
+                with_content(%r{^ExecStart=/usr/bin/bao server -config=/etc/openbao/openbao.hcl $}).
+                with_content(%r{SecureBits=keep-caps}).
+                with_content(%r{Capabilities=CAP_IPC_LOCK\+ep}).
+                with_content(%r{CapabilityBoundingSet=CAP_SYSLOG CAP_IPC_LOCK}).
+                with_content(%r{NoNewPrivileges=yes})
+            }
+          end
+
+          context 'service with non-default options' do
+            let(:params) do
+              {
+                bin_dir: '/opt/bin',
+                config_dir: '/opt/etc/openbao',
+                service_options: '-log-level=info',
+                user: 'root',
+                group: 'admin',
+                num_procs: 8
+              }
+            end
+
+            it {
+              is_expected.to contain_file('/etc/systemd/system/openbao.service').
+                with_mode('0444').
+                with_ensure('file').
+                with_owner('root').
+                with_group('root').
+                with_content(%r{^User=root$}).
+                with_content(%r{^Group=admin$}).
+                with_content(%r{^ExecStart=/opt/bin/bao server -config=/opt/etc/openbao/openbao.hcl -log-level=info$})
+            }
+          end
+
+          context 'start in agent mode' do
+            let(:params) do
+              { mode: 'agent' }
+            end
+
+            it {
+              is_expected.to contain_file('/etc/systemd/system/openbao.service').
+                with_mode('0444').
+                with_ensure('file').
+                with_owner('root').
+                with_group('root').
+                with_content(%r{^User=openbao$}).
+                with_content(%r{^Group=openbao$}).
+                with_content(%r{^ExecStart=/usr/bin/bao agent -config=/etc/openbao/openbao.hcl $}).
+                with_content(%r{SecureBits=keep-caps}).
+                with_content(%r{Capabilities=CAP_IPC_LOCK\+ep}).
+                with_content(%r{CapabilityBoundingSet=CAP_SYSLOG CAP_IPC_LOCK}).
+                with_content(%r{NoNewPrivileges=yes})
+            }
+          end
+
+          context 'with mlock disabled' do
+            let(:params) do
+              { disable_mlock: true }
+            end
+
+            it {
+              is_expected.to contain_file('/etc/systemd/system/openbao.service').
+                with_mode('0444').
+                with_ensure('file').
+                with_owner('root').
+                with_group('root').
+                with_content(%r{^User=openbao$}).
+                with_content(%r{^Group=openbao$}).
+                with_content(%r{^ExecStart=/usr/bin/bao server -config=/etc/openbao/openbao.hcl $}).
+                without_content(%r{SecureBits=keep-caps}).
+                without_content(%r{Capabilities=CAP_IPC_LOCK\+ep}).
+                with_content(%r{CapabilityBoundingSet=CAP_SYSLOG}).
+                with_content(%r{NoNewPrivileges=yes})
+            }
+          end
+
+          it { is_expected.to contain_systemd__unit_file('openbao.service') }
+
           context 'install through repo with default service management' do
             let(:params) do
               {
@@ -632,8 +659,6 @@ describe 'openbao' do
                 manage_service_file: :undef
               }
             end
-
-            it { is_expected.not_to contain_file('/etc/init.d/openbao') }
           end
 
           context 'install through repo without service management' do
@@ -644,7 +669,29 @@ describe 'openbao' do
               }
             end
 
-            it { is_expected.not_to contain_file('/etc/init.d/openbao') }
+            it { is_expected.not_to contain_file('/etc/systemd/system/openbao.service') }
+          end
+
+          context 'install through repo with service management' do
+            let(:params) do
+              {
+                install_method: 'repo',
+                manage_service_file: true
+              }
+            end
+
+            it { is_expected.to contain_file('/etc/systemd/system/openbao.service') }
+          end
+
+          context 'install through archive with default service management' do
+            let(:params) do
+              {
+                install_method: 'archive',
+                manage_service_file: :undef
+              }
+            end
+
+            it { is_expected.to contain_file('/etc/systemd/system/openbao.service') }
           end
 
           context 'install through archive without service management' do
@@ -655,165 +702,22 @@ describe 'openbao' do
               }
             end
 
-            it { is_expected.not_to contain_file('/etc/init.d/openbao') }
+            it { is_expected.not_to contain_file('/etc/systemd/system/openbao.service') }
           end
 
-          context 'on Debian based with systemd' do
-            context 'includes systemd init script' do
-              it {
-                is_expected.to contain_file('/etc/systemd/system/openbao.service').
-                  with_mode('0444').
-                  with_ensure('file').
-                  with_owner('root').
-                  with_group('root').
-                  with_content(%r{^User=openbao$}).
-                  with_content(%r{^Group=openbao$}).
-                  with_content(%r{^ExecStart=/usr/local/bin/bao server -config=/etc/openbao/openbao.hcl $}).
-                  with_content(%r{SecureBits=keep-caps}).
-                  with_content(%r{Capabilities=CAP_IPC_LOCK\+ep}).
-                  with_content(%r{CapabilityBoundingSet=CAP_SYSLOG CAP_IPC_LOCK}).
-                  with_content(%r{NoNewPrivileges=yes})
+          context 'install through archive with service management' do
+            let(:params) do
+              {
+                install_method: 'archive',
+                manage_service_file: true
               }
             end
 
-            context 'service with non-default options' do
-              let(:params) do
-                {
-                  bin_dir: '/opt/bin',
-                  config_dir: '/opt/etc/openbao',
-                  service_options: '-log-level=info',
-                  user: 'root',
-                  group: 'admin',
-                  num_procs: 8
-                }
-              end
-
-              it {
-                is_expected.to contain_file('/etc/systemd/system/openbao.service').
-                  with_mode('0444').
-                  with_ensure('file').
-                  with_owner('root').
-                  with_group('root').
-                  with_content(%r{^User=root$}).
-                  with_content(%r{^Group=admin$}).
-                  with_content(%r{^ExecStart=/opt/bin/bao server -config=/opt/etc/openbao/openbao.hcl -log-level=info$})
-              }
-            end
-
-            context 'start in agent mode' do
-              let(:params) do
-                { mode: 'agent' }
-              end
-
-              it {
-                is_expected.to contain_file('/etc/systemd/system/openbao.service').
-                  with_mode('0444').
-                  with_ensure('file').
-                  with_owner('root').
-                  with_group('root').
-                  with_content(%r{^User=openbao$}).
-                  with_content(%r{^Group=openbao$}).
-                  with_content(%r{^ExecStart=/usr/local/bin/bao agent -config=/etc/openbao/openbao.hcl $}).
-                  with_content(%r{SecureBits=keep-caps}).
-                  with_content(%r{Capabilities=CAP_IPC_LOCK\+ep}).
-                  with_content(%r{CapabilityBoundingSet=CAP_SYSLOG CAP_IPC_LOCK}).
-                  with_content(%r{NoNewPrivileges=yes})
-              }
-            end
-
-            context 'with mlock disabled' do
-              let(:params) do
-                { disable_mlock: true }
-              end
-
-              it {
-                is_expected.to contain_file('/etc/systemd/system/openbao.service').
-                  with_mode('0444').
-                  with_ensure('file').
-                  with_owner('root').
-                  with_group('root').
-                  with_content(%r{^User=openbao$}).
-                  with_content(%r{^Group=openbao$}).
-                  with_content(%r{^ExecStart=/usr/local/bin/bao server -config=/etc/openbao/openbao.hcl $}).
-                  without_content(%r{SecureBits=keep-caps}).
-                  without_content(%r{Capabilities=CAP_IPC_LOCK\+ep}).
-                  with_content(%r{CapabilityBoundingSet=CAP_SYSLOG}).
-                  with_content(%r{NoNewPrivileges=yes})
-              }
-            end
-
-            it { is_expected.to contain_systemd__unit_file('openbao.service') }
-
-            context 'install through repo with default service management' do
-              let(:params) do
-                {
-                  install_method: 'repo',
-                  manage_service_file: :undef
-                }
-              end
-
-              it { is_expected.not_to contain_file('/etc/systemd/system/openbao.service') }
-            end
-
-            context 'install through repo without service management' do
-              let(:params) do
-                {
-                  install_method: 'repo',
-                  manage_service_file: false
-                }
-              end
-
-              it { is_expected.not_to contain_file('/etc/systemd/system/openbao.service') }
-            end
-
-            context 'install through repo with service management' do
-              let(:params) do
-                {
-                  install_method: 'repo',
-                  manage_service_file: true
-                }
-              end
-
-              it { is_expected.to contain_file('/etc/systemd/system/openbao.service') }
-            end
-
-            context 'install through archive with default service management' do
-              let(:params) do
-                {
-                  install_method: 'archive',
-                  manage_service_file: :undef
-                }
-              end
-
-              it { is_expected.to contain_file('/etc/systemd/system/openbao.service') }
-            end
-
-            context 'install through archive without service management' do
-              let(:params) do
-                {
-                  install_method: 'archive',
-                  manage_service_file: false
-                }
-              end
-
-              it { is_expected.not_to contain_file('/etc/systemd/system/openbao.service') }
-            end
-
-            context 'install through archive with service management' do
-              let(:params) do
-                {
-                  install_method: 'archive',
-                  manage_service_file: true
-                }
-              end
-
-              it { is_expected.to contain_file('/etc/systemd/system/openbao.service') }
-            end
+            it { is_expected.to contain_file('/etc/systemd/system/openbao.service') }
           end
         end
       when 'Archlinux'
         context 'defaults to repo install' do
-          it { is_expected.to contain_file('openbao_binary').with_path('/bin/bao') }
           it { is_expected.not_to contain_file_capability('openbao_binary_capability') }
         end
       end

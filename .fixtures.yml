@@ -2,7 +2,6 @@ fixtures:
   repositories:
     stdlib: "https://github.com/puppetlabs/puppetlabs-stdlib.git"
     archive: "https://github.com/voxpupuli/puppet-archive.git"
-    hashi_stack: "https://github.com/voxpupuli/puppet-hashi_stack.git"
     systemd: "https://github.com/voxpupuli/puppet-systemd.git"
     file_capability: "https://github.com/smoeding/puppet-file_capability.git"
     apt: "https://github.com/puppetlabs/puppetlabs-apt.git"

@@ -30,8 +30,6 @@
 #
 # @param service_options Extra argument to pass to `bao server`, as per: `bao server --help`
 #
-# @param manage_repo Configure the upstream HashiCorp repository. Only relevant when $nomad::install_method = 'repo'.
-#
 # @param manage_service Instruct puppet to manage service or not
 #
 # @param num_procs
@@ -90,25 +88,25 @@
 # @param agent_env_template Hash containing environment template configuration for agent mode
 # @param agent_telemetry Hash containing telemetry configuration for agent mode
 class openbao (
+  $install_method                        = 'repo',
   $user                                  = 'openbao',
   $manage_user                           = true,
   $group                                 = 'openbao',
   $manage_group                          = true,
-  $bin_dir                               = $openbao::params::bin_dir,
+  $bin_dir                               = '/usr/bin',
   $manage_config_file                    = true,
   Enum['server', 'agent'] $mode          = 'server',
   $config_mode                           = '0750',
   $purge_config_dir                      = true,
   $download_url                          = undef,
   $download_url_base                     = 'https://github.com/openbao/openbao/releases/download',
-  $download_extension                    = 'tar.gz',
+  $download_extension                    = $install_method ? { 'repo' => 'deb', 'archive' => 'tar.gz' },
   $service_name                          = 'openbao',
   $service_enable                        = true,
   $service_ensure                        = 'running',
   $service_provider                      = $facts['service_provider'],
-  Boolean $manage_repo                   = $openbao::params::manage_repo,
   $manage_service                        = true,
-  Optional[Boolean] $manage_service_file = $openbao::params::manage_service_file,
+  Boolean $manage_service_file           = true,
   Hash $storage                          = { 'file' => { 'path' => '/var/lib/openbao' } },
   $manage_storage_dir                    = false,
   Variant[Hash, Array[Hash]] $listener   = { 'tcp' => { 'address' => '127.0.0.1:8200', 'tls_disable' => 1 }, },
@@ -122,8 +120,7 @@ class openbao (
   $manage_file_capabilities              = undef,
   $service_options                       = '',
   $num_procs                             = $facts['processors']['count'],
-  $install_method                        = $openbao::params::install_method,
-  $config_dir                            = if $install_method == 'repo' and $manage_repo { '/etc/openbao.d' } else { '/etc/openbao' },
+  $config_dir                            = '/etc/openbao',
   $package_name                          = 'bao',
   $package_ensure                        = 'installed',
   $download_dir                          = '/tmp',
@@ -131,7 +128,7 @@ class openbao (
   $download_filename                     = 'openbao.tar.gz',
   $version                               = 'v2.2.1',
   $os                                    = $facts['kernel'],
-  $arch                                  = $openbao::params::arch,
+  $arch                                  = $install_method ? { 'repo' => 'amd64', 'archive' => 'x86_64' },
   Optional[Boolean] $enable_ui           = undef,
   Optional[String] $api_addr             = undef,
   Hash $extra_config                     = {},
@@ -147,7 +144,7 @@ class openbao (
   Optional[Hash] $agent_exec             = undef,
   Optional[Hash] $agent_env_template     = undef,
   Optional[Hash] $agent_telemetry        = undef,
-) inherits openbao::params {
+) {
   $stub_ver = regsubst($version, '^v', '')
   # lint:ignore:140chars
   $real_download_url = pick($download_url, "${download_url_base}/${version}/${package_name}_${stub_ver}_${os}_${arch}.${download_extension}")

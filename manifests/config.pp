@@ -84,21 +84,7 @@ class openbao::config {
     }
   }
 
-  # If nothing is specified for manage_service_file, defaults will be used
-  # depending on the install_method.
-  # If a value is passed, it will be interpretted as a boolean.
-  if $openbao::manage_service_file == undef {
-    case $openbao::install_method {
-      'archive': { $real_manage_service_file = true }
-      'repo':    { $real_manage_service_file = false }
-      default:   { $real_manage_service_file = false }
-    }
-  } else {
-    assert_type(Boolean,$openbao::manage_service_file)
-    $real_manage_service_file = $openbao::manage_service_file
-  }
-
-  if $real_manage_service_file {
+  if $openbao::manage_service_file {
     case $openbao::service_provider {
       'systemd': {
         systemd::unit_file { 'openbao.service':
