@@ -123,8 +123,8 @@ class openbao (
   $package_ensure                        = 'installed',
   $download_dir                          = '/tmp',
   $manage_download_dir                   = false,
-  $download_filename                     = 'openbao.tar.gz',
-  $version                               = 'v2.2.1',
+  $download_filename                     = $install_method ? { 'repo' => 'openbao.deb', 'archive' => 'openbao.tar.gz' },
+  $version                               = '2.2.1',
   $os                                    = $facts['kernel'],
   $arch                                  = $install_method ? { 'repo' => 'amd64', 'archive' => 'x86_64' },
   Optional[Boolean] $enable_ui           = undef,
@@ -143,9 +143,8 @@ class openbao (
   Optional[Hash] $agent_env_template     = undef,
   Optional[Hash] $agent_telemetry        = undef,
 ) {
-  $stub_ver = regsubst($version, '^v', '')
   # lint:ignore:140chars
-  $real_download_url = pick($download_url, "${download_url_base}/${version}/${package_name}_${stub_ver}_${os}_${arch}.${download_extension}")
+  $real_download_url = pick($download_url, "${download_url_base}/v${version}/${package_name}_${version}_${os}_${arch}.${download_extension}")
   # lint:endignore
 
   contain openbao::install

@@ -132,7 +132,7 @@ describe 'openbao' do
 
           context 'when installed with default download options' do
             let(:params) do
-              super().merge(version: 'v2.2.1')
+              super().merge(version: '2.2.1')
             end
 
             it {
@@ -153,7 +153,7 @@ describe 'openbao' do
 
             it {
               is_expected.to contain_archive('/tmp/openbao.tar.gz').
-                with_source('http://my_site.example.com/openbao/0.6.0/openbaobinary_0.6.0_Linux_x86_64.tar.gz')
+                with_source('http://my_site.example.com/openbao/v0.6.0/openbaobinary_0.6.0_Linux_x86_64.tar.gz')
             }
           end
 

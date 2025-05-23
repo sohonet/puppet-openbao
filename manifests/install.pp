@@ -35,13 +35,13 @@ class openbao::install {
     'repo': {
       file { 'openbao_package':
         ensure => file,
-        path   => "${openbao::download_dir}/openbao.deb",
+        path   => "${openbao::download_dir}/v${openbao::version}-${openbao::download_filename}",
         source => $openbao::real_download_url,
       }
-
-      package { $openbao::package_name:
-        ensure => $openbao::package_ensure,
-        source => "${openbao::download_dir}/openbao.deb",
+      ~> package { $openbao::package_name:
+        ensure               => $openbao::package_ensure,
+        source               => "${openbao::download_dir}/v${openbao::version}-${openbao::download_filename}",
+        reinstall_on_refresh => true,
       }
       $_manage_file_capabilities = false
     }
