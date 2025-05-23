@@ -16,13 +16,8 @@ ProtectSystem=full
 ProtectHome=read-only
 PrivateTmp=yes
 PrivateDevices=yes
-<%- if $openbao::disable_mlock { -%>
-CapabilityBoundingSet=CAP_SYSLOG
-<%- } else { -%>
 SecureBits=keep-caps
-Capabilities=CAP_IPC_LOCK+ep
-CapabilityBoundingSet=CAP_SYSLOG CAP_IPC_LOCK
-<%- } -%>
+CapabilityBoundingSet=CAP_SYSLOG
 NoNewPrivileges=yes
 ExecStart=<%= $openbao::bin_dir %>/bao <%= $openbao::mode %> -config=<%= $openbao::config_dir %>/openbao.hcl <%= $openbao::service_options %>
 ExecReload=/bin/kill --signal HUP $MAINPID

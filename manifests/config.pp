@@ -27,7 +27,6 @@ class openbao::config {
             'disable_cache'     => $openbao::disable_cache,
             'default_lease_ttl' => $openbao::default_lease_ttl,
             'max_lease_ttl'     => $openbao::max_lease_ttl,
-            'disable_mlock'     => $openbao::disable_mlock,
             'ui'                => $openbao::enable_ui,
             'api_addr'          => $openbao::api_addr,
         })

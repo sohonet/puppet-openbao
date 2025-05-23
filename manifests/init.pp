@@ -59,7 +59,6 @@
 # @param package_name Name of the Vault package
 # @param install_method Installation method: 'archive' or 'repo'
 # @param manage_file_capabilities Whether to manage Linux file capabilities for bao binary
-# @param disable_mlock Whether to disable the memory lock capability
 # @param max_lease_ttl Specifies the maximum possible lease duration for tokens and secrets
 # @param default_lease_ttl Specifies the default lease duration for tokens and secrets
 # @param telemetry Hash containing Vault telemetry configuration
@@ -116,7 +115,6 @@ class openbao (
   Optional[Hash] $telemetry              = undef,
   Optional[String] $default_lease_ttl    = undef,
   Optional[String] $max_lease_ttl        = undef,
-  $disable_mlock                         = undef,
   $manage_file_capabilities              = undef,
   $service_options                       = '',
   $num_procs                             = $facts['processors']['count'],

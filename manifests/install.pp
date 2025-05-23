@@ -58,7 +58,7 @@ class openbao::install {
     mode  => '0755',
   }
 
-  if !$openbao::disable_mlock and pick($openbao::manage_file_capabilities, $_manage_file_capabilities) {
+  if pick($openbao::manage_file_capabilities, $_manage_file_capabilities) {
     file_capability { 'openbao_binary_capability':
       ensure     => present,
       file       => $openbao_bin,

@@ -91,27 +91,10 @@ describe 'openbao' do
               telemetry: exist,
               default_lease_ttl: exist,
               max_lease_ttl: exist,
-              disable_mlock: exist,
               ui: exist,
               api_addr: exist
             )
           end
-        end
-
-        context 'when disable mlock' do
-          let(:params) do
-            {
-              disable_mlock: true
-            }
-          end
-
-          it { is_expected.not_to contain_file_capability('openbao_binary_capability') }
-
-          it {
-            expect(param_value(catalogue, 'File', '/etc/openbao/openbao.hcl', 'content')).to include_json(
-              disable_mlock: true
-            )
-          }
         end
 
         context 'when api address is set' do
@@ -424,8 +407,7 @@ describe 'openbao' do
                   with_content(%r{^Group=openbao$}).
                   with_content(%r{^ExecStart=/usr/bin/bao server -config=/etc/openbao/openbao.hcl $}).
                   with_content(%r{SecureBits=keep-caps}).
-                  with_content(%r{Capabilities=CAP_IPC_LOCK\+ep}).
-                  with_content(%r{CapabilityBoundingSet=CAP_SYSLOG CAP_IPC_LOCK}).
+                  with_content(%r{CapabilityBoundingSet=CAP_SYSLOG}).
                   with_content(%r{NoNewPrivileges=yes})
               }
             end
@@ -469,28 +451,6 @@ describe 'openbao' do
                   with_content(%r{^Group=openbao$}).
                   with_content(%r{^ExecStart=/usr/bin/bao agent -config=/etc/openbao/openbao.hcl $}).
                   with_content(%r{SecureBits=keep-caps}).
-                  with_content(%r{Capabilities=CAP_IPC_LOCK\+ep}).
-                  with_content(%r{CapabilityBoundingSet=CAP_SYSLOG CAP_IPC_LOCK}).
-                  with_content(%r{NoNewPrivileges=yes})
-              }
-            end
-
-            context 'with mlock disabled' do
-              let(:params) do
-                { disable_mlock: true }
-              end
-
-              it {
-                is_expected.to contain_file('/etc/systemd/system/openbao.service').
-                  with_mode('0444').
-                  with_ensure('file').
-                  with_owner('root').
-                  with_group('root').
-                  with_content(%r{^User=openbao$}).
-                  with_content(%r{^Group=openbao$}).
-                  with_content(%r{^ExecStart=/usr/bin/bao server -config=/etc/openbao/openbao.hcl $}).
-                  without_content(%r{SecureBits=keep-caps}).
-                  without_content(%r{Capabilities=CAP_IPC_LOCK\+ep}).
                   with_content(%r{CapabilityBoundingSet=CAP_SYSLOG}).
                   with_content(%r{NoNewPrivileges=yes})
               }
@@ -578,8 +538,7 @@ describe 'openbao' do
                 with_content(%r{^Group=openbao$}).
                 with_content(%r{^ExecStart=/usr/bin/bao server -config=/etc/openbao/openbao.hcl $}).
                 with_content(%r{SecureBits=keep-caps}).
-                with_content(%r{Capabilities=CAP_IPC_LOCK\+ep}).
-                with_content(%r{CapabilityBoundingSet=CAP_SYSLOG CAP_IPC_LOCK}).
+                with_content(%r{CapabilityBoundingSet=CAP_SYSLOG}).
                 with_content(%r{NoNewPrivileges=yes})
             }
           end
@@ -623,28 +582,6 @@ describe 'openbao' do
                 with_content(%r{^Group=openbao$}).
                 with_content(%r{^ExecStart=/usr/bin/bao agent -config=/etc/openbao/openbao.hcl $}).
                 with_content(%r{SecureBits=keep-caps}).
-                with_content(%r{Capabilities=CAP_IPC_LOCK\+ep}).
-                with_content(%r{CapabilityBoundingSet=CAP_SYSLOG CAP_IPC_LOCK}).
-                with_content(%r{NoNewPrivileges=yes})
-            }
-          end
-
-          context 'with mlock disabled' do
-            let(:params) do
-              { disable_mlock: true }
-            end
-
-            it {
-              is_expected.to contain_file('/etc/systemd/system/openbao.service').
-                with_mode('0444').
-                with_ensure('file').
-                with_owner('root').
-                with_group('root').
-                with_content(%r{^User=openbao$}).
-                with_content(%r{^Group=openbao$}).
-                with_content(%r{^ExecStart=/usr/bin/bao server -config=/etc/openbao/openbao.hcl $}).
-                without_content(%r{SecureBits=keep-caps}).
-                without_content(%r{Capabilities=CAP_IPC_LOCK\+ep}).
                 with_content(%r{CapabilityBoundingSet=CAP_SYSLOG}).
                 with_content(%r{NoNewPrivileges=yes})
             }
