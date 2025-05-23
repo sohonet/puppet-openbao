@@ -1,14 +1,15 @@
 {
-  "name": "puppet-vault",
+  "name": "puppet-openbao",
   "version": "5.1.1-rc0",
   "author": "Vox Pupuli",
-  "summary": "Puppet module to manage Vault (https://vaultproject.io)",
+  "summary": "Puppet module to manage Vault (https://openbao.org)",
   "license": "Apache-2.0",
-  "source": "https://github.com/voxpupuli/puppet-vault.git",
-  "project_page": "https://github.com/voxpupuli/puppet-vault",
-  "issues_url": "https://github.com/voxpupuli/puppet-vault/issues",
+  "source": "https://github.com/sohonet/puppet-openbao.git",
+  "project_page": "https://github.com/sohonet/puppet-openbao",
+  "issues_url": "https://github.com/sohonet/puppet-openbao/issues",
   "tags": [
     "vault",
+    "openbao",
     "hashicorp",
     "secrets"
   ],
